@@ -54,12 +54,13 @@ export function MyReservationsPage() {
     try {
       await cancelReservation(toCancel.id);
     } catch (err) {
-      if (!isApiError(err) || err.status !== 401) setError(errorMessage(err));
+      if (isApiError(err) && err.status === 401) return; // `auth:expired` ya redirige al login (#7)
+      setError(errorMessage(err));
     } finally {
       setBusy(false);
       setToCancel(null);
-      await load();
     }
+    await load();
   }
 
   const empty = lists && lists.upcoming.length === 0 && lists.history.length === 0;

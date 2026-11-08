@@ -120,3 +120,23 @@ describe('POST /api/reservations', () => {
     expect((await book(ana.cookie, { courtId: 1, date: TOMORROW, startHour: 10 })).status).toBe(201);
   });
 });
+
+describe('máximo de 2 horas seguidas aunque una ya haya terminado (FR-019)', () => {
+  it('no permite encadenar una tercera hora consecutiva en la misma cancha', async () => {
+    const { book, ana, db, setNow } = setup();
+    insertReservation(db, { userId: ana.userId, courtId: 1, date: TOMORROW, startHour: 10 });
+    insertReservation(db, { userId: ana.userId, courtId: 1, date: TOMORROW, startHour: 11 });
+    setNow('2026-11-08T16:05:00Z'); // mañana 11:05: la de 10:00 ya terminó
+    const res = await book(ana.cookie, { courtId: 1, date: TOMORROW, startHour: 12 });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toEqual({ code: 'MAX_CONSECUTIVE_REACHED', message: 'Ya alcanzaste el máximo de 2 horas seguidas' });
+  });
+
+  it('sí permite reservar después si no se forman más de 2 horas seguidas', async () => {
+    const { book, ana, db, setNow } = setup();
+    insertReservation(db, { userId: ana.userId, courtId: 1, date: TOMORROW, startHour: 10 });
+    setNow('2026-11-08T16:05:00Z'); // 11:05: la de 10:00 terminó y no hay activas
+    expect((await book(ana.cookie, { courtId: 1, date: TOMORROW, startHour: 12 })).status).toBe(201);
+    expect((await book(ana.cookie, { courtId: 1, date: TOMORROW, startHour: 13 })).status).toBe(201);
+  });
+});

@@ -1,11 +1,11 @@
-import { Router } from 'express';
-import { requireAuth } from './auth.js';
+import { Router, type RequestHandler } from 'express';
 import type { Db } from './db.js';
 import { appError, sendError } from './errors.js';
-import { checkActiveRule, parseSlotInput, type SlotInput } from './rules.js';
+import { checkActiveRule, consecutiveRunLength, parseSlotInput, type SlotInput } from './rules.js';
 import { addDays, formatHour, isWithinWindow, slotEnd, slotStart, todayInMedellin } from './time.js';
 
 type Court = { id: number; name: string };
+type SlotRow = { court_id: number; date: string; start_hour: number };
 
 export type CreatedReservation = {
   id: number;
@@ -15,38 +15,65 @@ export type CreatedReservation = {
   endTime: string;
 };
 
+/** Sentencias de `createReservationTx`, preparadas una sola vez por conexión. */
+function prepareStatements(db: Db) {
+  return {
+    findCourt: db.prepare<[number], Court>('SELECT id, name FROM courts WHERE id = ?'),
+    slotTaken: db.prepare<[number, string, number], unknown>(
+      'SELECT 1 FROM reservations WHERE court_id = ? AND date = ? AND start_hour = ?',
+    ),
+    userReservationsSince: db.prepare<[number, string], SlotRow>(
+      'SELECT court_id, date, start_hour FROM reservations WHERE user_id = ? AND date >= ?',
+    ),
+    insert: db.prepare<[number, number, string, number]>(
+      'INSERT INTO reservations (user_id, court_id, date, start_hour) VALUES (?, ?, ?, ?)',
+    ),
+  };
+}
+
+const statementsByDb = new WeakMap<Db, ReturnType<typeof prepareStatements>>();
+
+function statementsFor(db: Db) {
+  let statements = statementsByDb.get(db);
+  if (!statements) {
+    statements = prepareStatements(db);
+    statementsByDb.set(db, statements);
+  }
+  return statements;
+}
+
 /**
- * Crea una reserva sin posibilidad de doble reserva (Principio II, FR-016, FR-017, FR-019).
- * Verificación de colisión + regla de reserva activa + inserción en una única
- * transacción IMMEDIATE; la restricción UNIQUE es la red de seguridad.
+ * Crea una reserva sin posibilidad de doble reserva (Principio II, FR-016..019).
+ * Todas las validaciones, en el orden de data-model.md, y la inserción ocurren en
+ * una única transacción IMMEDIATE; la restricción UNIQUE es la red de seguridad.
  * Lanza `appError` con el código correspondiente si la reserva no procede.
  */
 export function createReservationTx(db: Db, userId: number, slot: SlotInput, now: Date): CreatedReservation {
+  const s = statementsFor(db);
   const run = db.transaction(() => {
-    const court = db.prepare<[number], Court>('SELECT id, name FROM courts WHERE id = ?').get(slot.courtId);
+    const court = s.findCourt.get(slot.courtId);
     if (!court) throw appError('COURT_NOT_FOUND');
+    if (slotStart(slot.date, slot.startHour) <= now) throw appError('SLOT_IN_PAST');
+    if (!isWithinWindow(slot.date, now)) throw appError('OUTSIDE_BOOKING_WINDOW');
 
-    const taken = db
-      .prepare('SELECT 1 FROM reservations WHERE court_id = ? AND date = ? AND start_hour = ?')
-      .get(slot.courtId, slot.date, slot.startHour);
-    if (taken) throw appError('SLOT_TAKEN');
+    if (s.slotTaken.get(slot.courtId, slot.date, slot.startHour)) throw appError('SLOT_TAKEN');
 
-    // Reservas activas del usuario: aquellas cuyo fin aún no llega (incluye la en curso).
-    const active = db
-      .prepare<[number, string], { court_id: number; date: string; start_hour: number }>(
-        'SELECT court_id, date, start_hour FROM reservations WHERE user_id = ? AND date >= ?',
-      )
-      // Una reserva activa empezó como muy pronto ayer (Medellín): basta buscar desde ahí.
-      .all(userId, addDays(todayInMedellin(now), -1))
-      .map((r) => ({ courtId: r.court_id, date: r.date, startHour: r.start_hour }))
-      .filter((r) => slotEnd(r.date, r.startHour) > now);
+    // Reservas del usuario desde el día anterior al bloque: cubre las activas (fin > ahora,
+    // que empezaron como muy pronto ayer) y los vecinos que podrían formar una racha.
+    const since = addDays([slot.date, todayInMedellin(now)].sort()[0], -1);
+    const mine = s.userReservationsSince
+      .all(userId, since)
+      .map((r) => ({ courtId: r.court_id, date: r.date, startHour: r.start_hour }));
+
+    const active = mine.filter((r) => slotEnd(r.date, r.startHour) > now);
     const ruleError = checkActiveRule(active, slot);
     if (ruleError) throw appError(ruleError);
 
+    const sameCourt = mine.filter((r) => r.courtId === slot.courtId);
+    if (consecutiveRunLength(sameCourt, slot) > 2) throw appError('MAX_CONSECUTIVE_REACHED');
+
     try {
-      const { lastInsertRowid } = db
-        .prepare('INSERT INTO reservations (user_id, court_id, date, start_hour) VALUES (?, ?, ?, ?)')
-        .run(userId, slot.courtId, slot.date, slot.startHour);
+      const { lastInsertRowid } = s.insert.run(userId, slot.courtId, slot.date, slot.startHour);
       return {
         id: Number(lastInsertRowid),
         court,
@@ -62,23 +89,22 @@ export function createReservationTx(db: Db, userId: number, slot: SlotInput, now
   return run.immediate();
 }
 
+type MyReservation = CreatedReservation & { cancellable: boolean };
+
 /** Rutas de reservas, montadas en `/api/reservations`. */
-export function reservationsRouter(db: Db, now: () => Date) {
+export function reservationsRouter(db: Db, now: () => Date, auth: RequestHandler) {
   const router = Router();
-  const auth = requireAuth(db, now);
-  const courtExists = db.prepare('SELECT 1 FROM courts WHERE id = ?');
+  const courtExists = db.prepare<[number], unknown>('SELECT 1 FROM courts WHERE id = ?');
 
-  // Orden de validaciones: data-model.md "Reglas de validación al crear una reserva".
   router.post('/', auth, (req, res) => {
-    const courtId = (req.body as { courtId?: unknown } | undefined)?.courtId;
-    if (Number.isInteger(courtId) && !courtExists.get(courtId)) return sendError(res, 'COURT_NOT_FOUND');
     const slot = parseSlotInput(req.body);
-    if (!slot) return sendError(res, 'INVALID_SLOT');
-    const current = now();
-    if (slotStart(slot.date, slot.startHour) <= current) return sendError(res, 'SLOT_IN_PAST');
-    if (!isWithinWindow(slot.date, current)) return sendError(res, 'OUTSIDE_BOOKING_WINDOW');
-
-    const reservation = createReservationTx(db, res.locals.userId, slot, current);
+    if (!slot) {
+      // Una cancha entera pero inexistente es 404 aunque el resto venga mal formado.
+      const courtId = (req.body as { courtId?: unknown } | undefined)?.courtId;
+      if (Number.isInteger(courtId) && !courtExists.get(courtId as number)) return sendError(res, 'COURT_NOT_FOUND');
+      return sendError(res, 'INVALID_SLOT');
+    }
+    const reservation = createReservationTx(db, res.locals.userId, slot, now());
     res.status(201).json({ reservation });
   });
 
@@ -95,8 +121,8 @@ export function reservationsRouter(db: Db, now: () => Date) {
   // Panel "Mis Reservas" (FR-021, FR-022): solo las del usuario de la sesión (FR-008).
   router.get('/me', auth, (_req, res) => {
     const current = now();
-    const upcoming: Array<CreatedReservation & { cancellable: boolean }> = [];
-    const history: Array<CreatedReservation & { cancellable: boolean }> = [];
+    const upcoming: MyReservation[] = [];
+    const history: MyReservation[] = [];
     for (const r of listMine.all(res.locals.userId)) {
       const pending = slotStart(r.date, r.start_hour) > current;
       (pending ? upcoming : history).push({

@@ -1,5 +1,4 @@
-import { Router } from 'express';
-import { requireAuth } from './auth.js';
+import { Router, type RequestHandler } from 'express';
 import type { Db } from './db.js';
 import { sendError } from './errors.js';
 import { bookingWindow, isValidDate, isWithinWindow, slotLabel, slotStart } from './time.js';
@@ -7,7 +6,7 @@ import { bookingWindow, isValidDate, isWithinWindow, slotLabel, slotStart } from
 type Court = { id: number; name: string };
 
 /** Rutas de canchas, montadas en `/api/courts`. Catálogo de solo lectura (Principio I). */
-export function courtsRouter(db: Db, now: () => Date) {
+export function courtsRouter(db: Db, now: () => Date, auth: RequestHandler) {
   const router = Router();
   const listCourts = db.prepare<[], Court>('SELECT id, name FROM courts ORDER BY id');
   const findCourt = db.prepare<[number], Court>('SELECT id, name FROM courts WHERE id = ?');
@@ -20,7 +19,7 @@ export function courtsRouter(db: Db, now: () => Date) {
     res.json({ courts: listCourts.all() });
   });
 
-  router.get('/:courtId/availability', requireAuth(db, now), (req, res) => {
+  router.get('/:courtId/availability', auth, (req, res) => {
     const courtId = Number(req.params.courtId);
     const court = Number.isInteger(courtId) ? findCourt.get(courtId) : undefined;
     if (!court) return sendError(res, 'COURT_NOT_FOUND');

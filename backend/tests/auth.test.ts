@@ -117,3 +117,14 @@ describe('sesión', () => {
     expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(401);
   });
 });
+
+describe('cookie de sesión malformada', () => {
+  it('responde 401 (no 500) ante un sid con codificación inválida', async () => {
+    const { app } = makeTestApp(NOW);
+    for (const cookie of ['sid=%E0%A4', 'sid=%', 'sid=abc%zz']) {
+      const res = await request(app).get('/api/auth/me').set('Cookie', cookie);
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    }
+  });
+});

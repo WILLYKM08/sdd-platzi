@@ -18,12 +18,11 @@ export function makeTestApp(nowIso: string) {
 }
 
 // La contraseña se hashea una sola vez: scrypt es deliberadamente lento.
-let cachedHash: string | undefined;
+const PASSWORD_HASH = await hashPassword('secreta123');
 
 /** Inserta un usuario con sesión y devuelve su id y la cabecera Cookie lista para usar. */
 export function createUserWithSession(db: Db, email: string, now: Date) {
-  cachedHash ??= hashPassword('secreta123');
-  const { lastInsertRowid } = db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(email, cachedHash);
+  const { lastInsertRowid } = db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(email, PASSWORD_HASH);
   const userId = Number(lastInsertRowid);
   const token = createSession(db, userId, now);
   return { userId, cookie: `sid=${token}` };

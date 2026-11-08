@@ -51,3 +51,17 @@ export function checkActiveRule(
   if (existing.courtId === candidate.courtId && gap === HOUR_MS) return null;
   return 'ACTIVE_RESERVATION_EXISTS';
 }
+
+/**
+ * Longitud de la racha de bloques consecutivos que formaría `candidate` junto con
+ * `sameCourt` (reservas del mismo usuario en la misma cancha, incluidas las ya
+ * finalizadas). Se usa para impedir más de 2 horas seguidas (FR-019).
+ */
+export function consecutiveRunLength(sameCourt: SlotInput[], candidate: SlotInput): number {
+  const starts = new Set(sameCourt.map((r) => slotStart(r.date, r.startHour).getTime()));
+  const origin = slotStart(candidate.date, candidate.startHour).getTime();
+  let length = 1;
+  for (let t = origin - HOUR_MS; starts.has(t); t -= HOUR_MS) length++;
+  for (let t = origin + HOUR_MS; starts.has(t); t += HOUR_MS) length++;
+  return length;
+}

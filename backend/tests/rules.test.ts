@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkActiveRule, parseSlotInput } from '../src/rules.js';
+import { checkActiveRule, consecutiveRunLength, parseSlotInput } from '../src/rules.js';
 
 const belen14 = { courtId: 3, date: '2026-11-10', startHour: 14 };
 
@@ -45,5 +45,24 @@ describe('parseSlotInput', () => {
     expect(parseSlotInput({ courtId: 3, date: '2026-02-30', startHour: 10 })).toBeNull();
     expect(parseSlotInput({ courtId: '3', date: '2026-11-10', startHour: 10 })).toBeNull();
     expect(parseSlotInput(undefined)).toBeNull();
+  });
+});
+
+describe('consecutiveRunLength (FR-019, máximo 2 horas seguidas)', () => {
+  const at = (date: string, startHour: number) => ({ courtId: 3, date, startHour });
+
+  it('cuenta el propio bloque si no hay vecinos', () => {
+    expect(consecutiveRunLength([], at('2026-11-10', 12))).toBe(1);
+    expect(consecutiveRunLength([at('2026-11-10', 9)], at('2026-11-10', 12))).toBe(1);
+  });
+
+  it('suma los bloques contiguos hacia atrás y hacia adelante', () => {
+    expect(consecutiveRunLength([at('2026-11-10', 10), at('2026-11-10', 11)], at('2026-11-10', 12))).toBe(3);
+    expect(consecutiveRunLength([at('2026-11-10', 11), at('2026-11-10', 13)], at('2026-11-10', 12))).toBe(3);
+    expect(consecutiveRunLength([at('2026-11-10', 13)], at('2026-11-10', 12))).toBe(2);
+  });
+
+  it('cruza la medianoche', () => {
+    expect(consecutiveRunLength([at('2026-11-10', 22), at('2026-11-10', 23)], at('2026-11-11', 0))).toBe(3);
   });
 });

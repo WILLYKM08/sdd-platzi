@@ -130,4 +130,5 @@ Sea `inicio = instante(date, start_hour)` y `fin = inicio + 1 h`, `ahora` en Med
    - 1 → OK solo si misma cancha y `|inicio_nuevo − inicio_existente| = 1 h` (cruza medianoche);
      si no, 409 `ACTIVE_RESERVATION_EXISTS`.
    - ≥ 2 → 409 `MAX_CONSECUTIVE_REACHED`.
-7. INSERT. Si aun así salta `SQLITE_CONSTRAINT_UNIQUE` → 409 `SLOT_TAKEN`.
+7. Racha consecutiva (FR-019): con las reservas del usuario en la misma cancha (incluidas las finalizadas), si el nuevo bloque formaría más de 2 bloques consecutivos → 409 `MAX_CONSECUTIVE_REACHED`.
+8. INSERT. Si aun así salta `SQLITE_CONSTRAINT_UNIQUE` → 409 `SLOT_TAKEN`.

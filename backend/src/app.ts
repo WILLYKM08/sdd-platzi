@@ -1,5 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
-import { authRouter } from './auth.js';
+import { authRouter, requireAuth } from './auth.js';
 import { courtsRouter } from './courts.js';
 import { reservationsRouter } from './reservations.js';
 import type { Db } from './db.js';
@@ -12,9 +12,11 @@ export function createApp({ db, now }: AppContext) {
   app.disable('x-powered-by');
   app.use(express.json());
 
-  app.use('/api/auth', authRouter(db, now));
-  app.use('/api/courts', courtsRouter(db, now));
-  app.use('/api/reservations', reservationsRouter(db, now));
+  // Un único middleware de sesión compartido por todos los routers (Principio III).
+  const auth = requireAuth(db, now);
+  app.use('/api/auth', authRouter(db, now, auth));
+  app.use('/api/courts', courtsRouter(db, now, auth));
+  app.use('/api/reservations', reservationsRouter(db, now, auth));
 
   app.use('/api', (_req, res) => sendError(res, 'NOT_FOUND'));
 

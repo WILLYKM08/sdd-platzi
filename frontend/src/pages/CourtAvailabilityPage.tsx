@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   createReservation,
@@ -25,22 +25,33 @@ function hourRange(startHour: number): string {
 export function CourtAvailabilityPage() {
   const courtId = Number(useParams().courtId);
   const [date, setDate] = useState(todayInMedellin);
+  // `data` solo contiene la grilla de la fecha actual; nunca la de otra fecha.
   const [data, setData] = useState<Availability | null>(null);
+  // La ventana del calendario se conserva aunque falle una carga, para poder cambiar de fecha.
+  const [bookingWindow, setBookingWindow] = useState<Availability['bookingWindow'] | null>(null);
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Reservation | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const latestRequest = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++latestRequest.current;
     try {
-      setData(await getAvailability(courtId, date));
+      const availability = await getAvailability(courtId, date);
+      if (requestId !== latestRequest.current) return; // respuesta obsoleta (#3)
+      setData(availability);
+      setBookingWindow(availability.bookingWindow);
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
+      setData(null); // sin grilla válida para esta fecha, nada es seleccionable (#4)
       if (!isApiError(err) || err.status !== 401) setError(errorMessage(err));
     }
   }, [courtId, date]);
 
   useEffect(() => {
     setSelectedHour(null);
+    setData(null);
     load();
   }, [load]);
 
@@ -86,9 +97,7 @@ export function CourtAvailabilityPage() {
       </Link>
       <h1 className="text-xl font-semibold">{courtName}</h1>
 
-      {data && (
-        <DatePicker value={date} min={data.bookingWindow.from} max={data.bookingWindow.to} onChange={handleDateChange} />
-      )}
+      {bookingWindow && <DatePicker value={date} min={bookingWindow.from} max={bookingWindow.to} onChange={handleDateChange} />}
 
       {confirmed && (
         <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">

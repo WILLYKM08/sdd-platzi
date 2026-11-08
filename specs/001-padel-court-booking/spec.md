@@ -84,7 +84,8 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 - **Bloque en curso**: si son las 14:20, el bloque 14:00–15:00 ya no es reservable (su inicio transcurrió) ni cancelable; se considera pasado/iniciado.
 - **Cambio de día**: el bloque 23:00–24:00 termina a la medianoche; pertenece a la fecha en que inicia.
 - **Grilla desactualizada**: si el usuario tiene la grilla abierta mucho tiempo y el bloque ya fue tomado o ya transcurrió, la confirmación se re-valida y se rechaza con un mensaje claro; la grilla se refresca.
-- **Reserva activa que termina**: cuando la hora de fin de la reserva activa de un usuario pasa, esa reserva se mueve al historial y el usuario puede volver a reservar.
+- **Reserva activa que termina**: cuando la hora de fin de la reserva activa de un usuario pasa, esa reserva se mueve al historial y el usuario puede volver a reservar, salvo que la nueva reserva forme más de 2 horas seguidas con sus reservas en la misma cancha (FR-019).
+- **Encadenar horas**: si un usuario reservó 10:00 y 11:00 en una cancha, a las 11:05 (con la de 10:00 ya finalizada) no puede reservar 12:00 en esa cancha, porque formaría 3 horas seguidas; se rechaza con "Ya alcanzaste el máximo de 2 horas seguidas".
 - **Cancelación y nueva reserva**: tras cancelar su reserva activa, el usuario puede reservar otro bloque de inmediato.
 - **Cancelar una de dos horas contiguas**: si el usuario cancela una de sus 2 reservas contiguas, la otra se mantiene y vuelve a aplicar la regla de 1 reserva activa (con su posible bloque contiguo).
 - **Contigüidad a medianoche**: el bloque 23:00–24:00 de un día y el 00:00–01:00 del día siguiente en la misma cancha se consideran contiguos.
@@ -126,7 +127,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 - **FR-016**: Al confirmar, el sistema MUST re-validar que el bloque siga disponible; si fue tomado por otro usuario, MUST rechazar la reserva con el mensaje "La cancha ya fue reservada en este horario".
 - **FR-017**: El sistema MUST garantizar que nunca existan dos reservas para la misma cancha en el mismo bloque, incluso ante confirmaciones simultáneas.
 - **FR-018**: El sistema MUST rechazar reservas en fechas pasadas, en bloques cuya hora de inicio ya transcurrió o en fechas posteriores a la ventana de 14 días (FR-010), aunque la petición evite el calendario.
-- **FR-019**: Un usuario MUST tener como máximo una reserva activa (no finalizada) a la vez, con una única excepción: puede tener una segunda reserva activa si es el bloque inmediatamente anterior o posterior a la primera, en la misma cancha (máximo 2 horas seguidas). Cualquier otro intento de reserva adicional MUST rechazarse con un mensaje claro que explique la regla.
+- **FR-019**: Un usuario MUST tener como máximo una reserva activa (no finalizada) a la vez, con una única excepción: puede tener una segunda reserva activa si es el bloque inmediatamente anterior o posterior a la primera, en la misma cancha (máximo 2 horas seguidas). Además, una reserva MUST rechazarse si, junto con las demás reservas del mismo usuario en la misma cancha (activas, en curso o ya finalizadas), formaría más de 2 bloques consecutivos. Cualquier otro intento de reserva adicional MUST rechazarse con un mensaje claro que explique la regla.
 - **FR-020**: Tras una reserva exitosa, el sistema MUST mostrar una confirmación con cancha, fecha y hora, y el bloque MUST verse como "Reservado".
 
 **Mis Reservas**
@@ -166,7 +167,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 
 - **Zona horaria**: todas las fechas y horas se interpretan en la hora local de Medellín, Colombia (UTC−5, sin horario de verano); "pasado" y "ahora" se calculan con esa referencia.
 - **Horario de operación**: las canchas pueden reservarse las 24 horas del día (00:00–24:00), según la grilla de 24 bloques descrita.
-- **Reserva activa**: se considera activa toda reserva cuya hora de fin aún no ha llegado (incluye la que está en curso). Al terminar, pasa al historial y deja de contar para el límite de FR-019.
+- **Reserva activa**: se considera activa toda reserva cuya hora de fin aún no ha llegado (incluye la que está en curso). Al terminar, pasa al historial y deja de contar para el límite de reservas activas de FR-019, pero sí cuenta para el máximo de 2 horas seguidas en la misma cancha.
 - **Cancelación**: el plazo se define en FR-025. Las reservas canceladas se eliminan y no aparecen en el historial (el historial solo contiene reservas que llegaron a iniciarse).
 - **Cuenta**: no se incluyen en esta iteración la recuperación de contraseña, verificación de correo ni edición de perfil (no hay notificaciones externas).
 - **Fuera de alcance (Non-Goals)**: pasarela de pagos (el pago es presencial en el club); panel de administración de canchas; notificaciones externas (correo, SMS, WhatsApp); reservas de más de 1 hora continua en una sola acción (2 horas requieren 2 reservas contiguas en la misma cancha, según FR-019; más de 2 horas no es posible); matchmaking o torneos.

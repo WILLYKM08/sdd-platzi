@@ -90,6 +90,10 @@ la constitución y la spec dejan abiertas. No quedan ítems "NEEDS CLARIFICATION
     23:00 de un día y 00:00 del siguiente son contiguos). Si no →
     409 `ACTIVE_RESERVATION_EXISTS`.
   - 2 activas → 409 `MAX_CONSECUTIVE_REACHED`.
+  - Además, `consecutiveRunLength(sameCourt, candidate)` cuenta la racha de bloques
+    consecutivos del usuario en esa cancha (incluidas reservas finalizadas) que formaría
+    el nuevo bloque; si supera 2 → 409 `MAX_CONSECUTIVE_REACHED`. Evita encadenar
+    10:00, 11:00 y 12:00 una vez finalizada la de 10:00.
 - **Orden de validaciones en `POST /api/reservations`**: autenticación (401) → formato (400)
   → hora pasada / fuera de ventana (400) → colisión de cancha (409 `SLOT_TAKEN`) → regla de
   reserva activa (409). La colisión se evalúa antes que la regla porque la spec exige el
