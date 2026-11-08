@@ -39,6 +39,7 @@ Request: igual que `register`.
 |-----------|--------|
 | **200** `{ "user": { "id": 1, "email": "ana@example.com" } }` + `Set-Cookie: sid=…` | Credenciales válidas |
 | 401 `INVALID_CREDENTIALS` | Correo inexistente **o** contraseña incorrecta (mismo mensaje, FR-005) |
+| 429 `TOO_MANY_ATTEMPTS` | Más de 10 intentos fallidos con ese correo, o más de 50 desde la misma dirección de origen, en 15 minutos (FR-028). Se rechaza antes de verificar la contraseña. |
 | 400 `INVALID_REQUEST` | Faltan campos |
 
 ### `POST /api/auth/logout` 🔒
@@ -180,6 +181,7 @@ Cancela una reserva propia futura (FR-023..025). La confirmación es responsabil
 | 409 | `ACTIVE_RESERVATION_EXISTS` | Ya tienes una reserva activa. Solo puedes agregar la hora inmediatamente anterior o posterior en la misma cancha |
 | 409 | `MAX_CONSECUTIVE_REACHED` | Ya alcanzaste el máximo de 2 horas seguidas |
 | 409 | `RESERVATION_STARTED` | Esta reserva ya comenzó y no puede cancelarse |
+| 429 | `TOO_MANY_ATTEMPTS` | Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo. |
 | 500 | `INTERNAL_ERROR` | Ocurrió un problema inesperado. Inténtalo de nuevo en unos minutos. |
 
 Los mensajes de la spec se usan literalmente (sin punto final cuando la spec no lo trae).

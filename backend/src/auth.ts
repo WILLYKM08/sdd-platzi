@@ -61,11 +61,13 @@ export function createSession(db: Db, userId: number, now: Date): string {
   return token;
 }
 
+// `Secure` por defecto (Chromium y Firefox lo aceptan en http://localhost);
+// solo se desactiva explícitamente con COOKIE_SECURE=false. Ver research.md R9.
 const cookieOptions = () => ({
   httpOnly: true,
   sameSite: 'lax' as const,
   path: '/',
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.COOKIE_SECURE !== 'false',
 });
 
 export function setSessionCookie(res: Response, token: string): void {
@@ -131,6 +133,43 @@ function asyncHandler(handler: (req: Request, res: Response) => Promise<void>): 
 
 type UserRow = { id: number; email: string; password_hash: string };
 
+// Límite de intentos de login (FR-028, research.md R9).
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS_PER_EMAIL = 10;
+const MAX_ATTEMPTS_PER_ORIGIN = 50;
+
+/**
+ * Contador en memoria con ventana fija. Los intentos se cuentan antes de verificar la
+ * contraseña (así peticiones simultáneas no superan el límite y un intento bloqueado
+ * no consume scrypt); un login exitoso devuelve el intento con `release`.
+ */
+function makeAttemptCounter(limit: number) {
+  const counters = new Map<string, { count: number; resetAt: number }>();
+  return {
+    /** Registra un intento; devuelve `false` si el límite ya se alcanzó en la ventana. */
+    tryAttempt(key: string, nowMs: number): boolean {
+      for (const [k, c] of counters) if (c.resetAt <= nowMs) counters.delete(k);
+      const current = counters.get(key);
+      if (!current) {
+        counters.set(key, { count: 1, resetAt: nowMs + LOGIN_WINDOW_MS });
+        return true;
+      }
+      if (current.count >= limit) return false;
+      current.count++;
+      return true;
+    },
+    /** Descuenta un intento que resultó exitoso. */
+    release(key: string): void {
+      const current = counters.get(key);
+      if (current && --current.count <= 0) counters.delete(key);
+    },
+    /** Reinicia el contador de la clave. */
+    reset(key: string): void {
+      counters.delete(key);
+    },
+  };
+}
+
 /** Rutas de autenticación, montadas en `/api/auth`. */
 export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
   const router = Router();
@@ -138,6 +177,18 @@ export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
   const findUserByEmail = db.prepare<[string], UserRow>('SELECT id, email, password_hash FROM users WHERE email = ?');
   const findUserById = db.prepare<[number], { id: number; email: string }>('SELECT id, email FROM users WHERE id = ?');
   const deleteSession = db.prepare('DELETE FROM sessions WHERE token_hash = ?');
+  const purgeExpiredSessions = db.prepare('DELETE FROM sessions WHERE expires_at <= ?');
+  const attemptsByEmail = makeAttemptCounter(MAX_ATTEMPTS_PER_EMAIL);
+  const attemptsByOrigin = makeAttemptCounter(MAX_ATTEMPTS_PER_ORIGIN);
+
+  /** Inicia sesión: borra la sesión anterior del navegador y las vencidas, y crea una nueva. */
+  function startSession(req: Request, res: Response, userId: number): void {
+    const current = now();
+    const previous = readSidCookie(req);
+    if (previous) deleteSession.run(sha256(previous));
+    purgeExpiredSessions.run(current.toISOString());
+    setSessionCookie(res, createSession(db, userId, current));
+  }
 
   router.post(
     '/register',
@@ -158,7 +209,7 @@ export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
         if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') return sendError(res, 'EMAIL_TAKEN');
         throw err;
       }
-      setSessionCookie(res, createSession(db, userId, now()));
+      startSession(req, res, userId);
       res.status(201).json({ user: { id: userId, email } });
     }),
   );
@@ -170,10 +221,22 @@ export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
       if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
         return sendError(res, 'INVALID_REQUEST');
       }
-      const user = findUserByEmail.get(email.trim().toLowerCase());
+      const normalizedEmail = email.trim().toLowerCase();
+      const origin = req.ip ?? 'desconocido';
+      const nowMs = now().getTime();
+      if (!attemptsByOrigin.tryAttempt(origin, nowMs)) return sendError(res, 'TOO_MANY_ATTEMPTS');
+      if (!attemptsByEmail.tryAttempt(normalizedEmail, nowMs)) {
+        attemptsByOrigin.release(origin);
+        return sendError(res, 'TOO_MANY_ATTEMPTS');
+      }
+
+      const user = findUserByEmail.get(normalizedEmail);
       const valid = await verifyPassword(password, user ? user.password_hash : DUMMY_HASH);
       if (!user || !valid) return sendError(res, 'INVALID_CREDENTIALS');
-      setSessionCookie(res, createSession(db, user.id, now()));
+
+      attemptsByEmail.reset(normalizedEmail);
+      attemptsByOrigin.release(origin);
+      startSession(req, res, user.id);
       res.status(200).json({ user: { id: user.id, email: user.email } });
     }),
   );

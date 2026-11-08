@@ -118,6 +118,7 @@ backend/
     ├── rules.test.ts
     ├── auth.test.ts
     ├── authCost.test.ts         # costo de hash en registro/login (T058)
+    ├── security.test.ts         # límite de login, cookie Secure, cabeceras, higiene de sesiones (T062–T066)
     ├── courts.test.ts
     ├── reservations.test.ts
     ├── myReservations.test.ts

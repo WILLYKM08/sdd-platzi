@@ -23,6 +23,7 @@ export const ERRORS = {
   },
   MAX_CONSECUTIVE_REACHED: { status: 409, message: 'Ya alcanzaste el máximo de 2 horas seguidas' },
   RESERVATION_STARTED: { status: 409, message: 'Esta reserva ya comenzó y no puede cancelarse' },
+  TOO_MANY_ATTEMPTS: { status: 429, message: 'Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.' },
   INTERNAL_ERROR: { status: 500, message: 'Ocurrió un problema inesperado. Inténtalo de nuevo en unos minutos.' },
 } as const;
 

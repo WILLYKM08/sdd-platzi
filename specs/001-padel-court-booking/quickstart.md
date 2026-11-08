@@ -25,6 +25,8 @@ npm run dev          # http://localhost:5173
 
 Reiniciar la base: detener el backend y borrar `db/padel.db` (se recrea con las 5 canchas).
 
+> **Cookie de sesión**: lleva `Secure` por defecto. Chromium y Firefox la aceptan en `http://localhost`; si tu navegador no la guarda en local, arranca el backend con `COOKIE_SECURE=false` (en PowerShell: `$env:COOKIE_SECURE="false"; npm run dev`). **En producción no la desactives** y sirve la app por HTTPS. Si el backend queda detrás de un proxy inverso, configura `trust proxy` para que el límite de intentos de login use la IP real del cliente.
+
 ## Pruebas automatizadas
 
 ```bash
@@ -92,4 +94,5 @@ Cubiertos en `backend/tests/` fijando `now`:
 - Reserva activa que termina → pasa a historial y el usuario puede volver a reservar.
 - Encadenar horas: con 10:00 y 11:00 reservadas en una cancha, a las 11:05 (la de 10:00 ya finalizada) reservar 12:00 en esa cancha → 409 `MAX_CONSECUTIVE_REACHED` "Ya alcanzaste el máximo de 2 horas seguidas". Si solo existía la de 10:00, 12:00 y 13:00 sí se permiten (`backend/tests/reservations.test.ts`, T056).
 - Sesión con `expires_at` vencido → 401 y no se crea la reserva.
+- Límite de login: 10 intentos fallidos con el mismo correo (o 50 desde la misma IP) en 15 minutos → el siguiente responde 429 `TOO_MANY_ATTEMPTS`, aun con la contraseña correcta; pasada la ventana vuelve a funcionar (`backend/tests/security.test.ts`, T062).
 - Día hoy+13 permitido; hoy+14 rechazado; a medianoche de Medellín la ventana avanza.

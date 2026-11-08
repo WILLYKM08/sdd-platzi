@@ -145,3 +145,30 @@ la constitución y la spec dejan abiertas. No quedan ítems "NEEDS CLARIFICATION
   configuración extra.
 - **Alternatives considered**: Jest (requiere `ts-jest`/Babel), Playwright E2E (útil pero
   fuera del mínimo; la validación manual de punta a punta se cubre en `quickstart.md`).
+
+## R9. Endurecimiento de seguridad (revisión de seguridad post-implementación)
+
+- **Límite de intentos de login (FR-028)**
+  - **Decision**: contador en memoria del proceso, con ventana fija de 15 minutos, por
+    correo (10 fallos) y por dirección de origen `req.ip` (50 fallos). Se consulta
+    **antes** de verificar la contraseña, así que un intento bloqueado no consume un
+    cálculo de scrypt. Un login exitoso reinicia el contador del correo. Las entradas
+    vencidas se purgan en cada consulta. Usa el mismo reloj inyectado (`now`) que el
+    resto de la app, para poder probarlo.
+  - **Rationale**: frena la fuerza bruta contra una cuenta y la saturación del pool de
+    hilos de scrypt, sin dependencias nuevas.
+  - **Alternatives considered**: `express-rate-limit` (dependencia nueva para pocas
+    líneas); tabla SQLite (persistiría tras reiniciar, pero añade escrituras en cada
+    fallo; innecesario con un solo proceso).
+  - **Limitación conocida**: el contador se pierde al reiniciar el servidor y no se
+    comparte entre procesos. Si se despliega detrás de un proxy inverso, hay que
+    configurar `trust proxy` para que `req.ip` sea la IP real del cliente.
+- **Cookie `Secure` por defecto**: la cookie de sesión lleva `Secure` salvo que
+  `COOKIE_SECURE=false`. Chromium y Firefox aceptan cookies `Secure` en
+  `http://localhost`, así que el desarrollo local sigue funcionando.
+- **Cabeceras de seguridad**: el backend envía `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Content-Security-Policy: default-src 'none';
+  frame-ancestors 'none'` y `Referrer-Policy: no-referrer`. El servidor de Vite envía
+  `X-Frame-Options: DENY` y `frame-ancestors 'none'` para evitar clickjacking en la SPA.
+- **Higiene de sesiones**: al iniciar sesión o registrarse se borran las sesiones
+  vencidas y la sesión anterior del navegador (si traía cookie `sid`).

@@ -96,6 +96,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 - **Fechas fuera de la ventana**: las fechas pasadas y las posteriores a hoy + 13 días aparecen deshabilitadas en el calendario; un intento directo de reservar en ellas se rechaza con "Solo puedes reservar desde hoy y hasta 14 días en adelante".
 - **Ventana móvil**: la ventana avanza cada día a medianoche (hora de Medellín); el día 14 se habilita al cambiar de fecha.
 - **Recargar la página**: al recargar o volver a abrir la disponibilidad de una cancha, la fecha seleccionada vuelve a ser hoy; la fecha elegida no se conserva.
+- **Intentos de inicio de sesión repetidos**: tras 10 intentos fallidos con el mismo correo en 15 minutos, el undécimo se rechaza con "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo." aunque la contraseña sea correcta; pasada la ventana, se puede volver a intentar.
 - **Errores inesperados**: ante cualquier fallo técnico, el usuario ve un mensaje amigable en español, nunca detalles técnicos.
 
 ## Requirements *(mandatory)*
@@ -112,6 +113,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 - **FR-006**: El sistema MUST almacenar las contraseñas de forma que no puedan leerse en texto plano.
 - **FR-007**: Ver la grilla de disponibilidad, crear, consultar y cancelar reservas MUST requerir una sesión activa; sin ella, el sistema MUST rechazar la acción y solicitar inicio de sesión.
 - **FR-008**: Un usuario MUST poder ver y cancelar únicamente sus propias reservas.
+- **FR-028**: El sistema MUST limitar los intentos fallidos de inicio de sesión: como máximo 10 por correo y 50 por dirección de origen en una ventana de 15 minutos. Al superar el límite, MUST rechazar los nuevos intentos, incluso con la contraseña correcta, con el mensaje "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo." hasta que termine la ventana. Un inicio de sesión exitoso reinicia el contador de ese correo.
 
 **Canchas y disponibilidad**
 
@@ -142,7 +144,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 **Errores**
 
 - **FR-026**: Todos los mensajes de error mostrados al usuario MUST estar en español, ser comprensibles y no contener detalles técnicos.
-- **FR-027**: El sistema MUST responder con estos códigos HTTP: 400 para datos inválidos y reglas de tiempo (bloque pasado, fuera de la ventana de 14 días); 401 sin sesión o con credenciales inválidas; 404 para canchas inexistentes o reservas inexistentes o ajenas; 409 para conflictos con el estado de las reservas: bloque ya reservado, regla de reserva activa (FR-019), máximo de 2 horas seguidas, cancelación de una reserva ya iniciada y correo ya registrado.
+- **FR-027**: El sistema MUST responder con estos códigos HTTP: 400 para datos inválidos y reglas de tiempo (bloque pasado, fuera de la ventana de 14 días); 401 sin sesión o con credenciales inválidas; 404 para canchas inexistentes o reservas inexistentes o ajenas; 409 para conflictos con el estado de las reservas: bloque ya reservado, regla de reserva activa (FR-019), máximo de 2 horas seguidas, cancelación de una reserva ya iniciada y correo ya registrado; 429 al superar el límite de intentos de inicio de sesión (FR-028).
 
 ### Key Entities
 

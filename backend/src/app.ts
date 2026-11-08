@@ -10,6 +10,16 @@ export type AppContext = { db: Db; now: () => Date };
 export function createApp({ db, now }: AppContext) {
   const app = express();
   app.disable('x-powered-by');
+  // Cabeceras de seguridad para todas las respuestas de la API (research.md R9).
+  app.use((_req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+      'Referrer-Policy': 'no-referrer',
+    });
+    next();
+  });
   app.use(express.json());
 
   // Un único middleware de sesión compartido por todos los routers (Principio III).

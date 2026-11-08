@@ -178,6 +178,20 @@ description: "Lista de tareas para implementar el Sistema de Reservas de Canchas
 
 ---
 
+## Phase 8: Endurecimiento de seguridad (Cross-Cutting)
+
+**Purpose**: Corregir los hallazgos S1–S4 de la revisión de seguridad post-implementación ([research R9](./research.md#r9-endurecimiento-de-seguridad-revisión-de-seguridad-post-implementación)).
+
+- [X] T062 Limitar los intentos de login en `backend/src/auth.ts` con un contador en memoria de ventana fija (15 min): 10 por correo y 50 por `req.ip`, contados antes de verificar la contraseña; al superarlo → 429 `TOO_MANY_ATTEMPTS`; un login exitoso reinicia el contador del correo. Nuevo código en `backend/src/errors.ts`. Pruebas en `backend/tests/security.test.ts` (FR-028, FR-027)
+- [X] T063 Cookie de sesión con `Secure` por defecto, desactivable solo con `COOKIE_SECURE=false` (`backend/src/auth.ts`); documentado en `quickstart.md`. Prueba en `backend/tests/security.test.ts` (FR-004, FR-006)
+- [X] T064 Cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy`) en todas las respuestas de `backend/src/app.ts`, y `X-Frame-Options`/`frame-ancestors` en el servidor de Vite (`frontend/vite.config.ts`). Prueba en `backend/tests/security.test.ts` (Principio V)
+- [X] T065 Al iniciar sesión o registrarse, borrar la sesión anterior del navegador y las sesiones vencidas (`startSession` en `backend/src/auth.ts`). Pruebas en `backend/tests/security.test.ts` (FR-004)
+- [X] T066 Repetir la validación de `quickstart.md` en el navegador con la cookie `Secure` sobre `http://localhost` y verificar las cabeceras del servidor de Vite (T054)
+
+**Checkpoint**: 69 pruebas en backend y 16 en frontend en verde; S5 (actualizar `react-router-dom` a 7.18+) queda registrado para una actualización futura: no es explotable en esta app (sin SSR ni destinos de navegación controlados por el usuario).
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -188,6 +202,7 @@ description: "Lista de tareas para implementar el Sistema de Reservas de Canchas
 - **US3 (Phase 5)**: depende de Foundational; su backend se prueba de forma independiente (reservas insertadas con helpers).
 - **Polish (Phase 6)**: depende de las historias que se quieran entregar.
 - **Revisión post-implementación (Phase 7)**: depende de la Phase 6; recoge las correcciones de `/code-review`.
+- **Endurecimiento de seguridad (Phase 8)**: depende de la Phase 7; recoge las correcciones de la revisión de seguridad.
 
 ### User Story Dependencies
 

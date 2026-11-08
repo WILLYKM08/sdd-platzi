@@ -42,7 +42,7 @@ users 1 ──── * reservations * ──── 1 courts
 
 Índice: `idx_sessions_user (user_id)`.
 
-**Ciclo de vida**: `login`/`register` → INSERT · petición con `expires_at <= now` → se borra la fila y se responde 401 · `logout` → DELETE.
+**Ciclo de vida**: `login`/`register` → borra la sesión anterior del navegador (si traía cookie `sid`) y todas las vencidas, e INSERT de la nueva · petición con `expires_at <= now` → se borra la fila y se responde 401 · `logout` → DELETE.
 
 ## 3. `courts` — Cancha (catálogo inmutable)
 
