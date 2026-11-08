@@ -29,6 +29,7 @@ Request
 | **201** `{ "user": { "id": 1, "email": "ana@example.com" } }` + `Set-Cookie: sid=…` | Éxito |
 | 400 `INVALID_EMAIL` | Correo vacío o con formato inválido |
 | 400 `PASSWORD_TOO_SHORT` | Contraseña < 8 caracteres |
+| 400 `PASSWORD_TOO_LONG` | Contraseña > 128 caracteres |
 | 409 `EMAIL_TAKEN` | Correo ya registrado (sin distinguir mayúsculas) |
 
 ### `POST /api/auth/login`
@@ -164,6 +165,7 @@ Cancela una reserva propia futura (FR-023..025). La confirmación es responsabil
 | 400 | `INVALID_REQUEST` | La solicitud no es válida. Revisa los datos e inténtalo de nuevo. |
 | 400 | `INVALID_EMAIL` | Ingresa un correo electrónico válido. |
 | 400 | `PASSWORD_TOO_SHORT` | La contraseña debe tener al menos 8 caracteres. |
+| 400 | `PASSWORD_TOO_LONG` | La contraseña no puede tener más de 128 caracteres. |
 | 400 | `INVALID_DATE` | La fecha seleccionada no es válida. |
 | 400 | `INVALID_SLOT` | El horario seleccionado no es válido. |
 | 400 | `SLOT_IN_PAST` | No puedes reservar un horario que ya pasó. |

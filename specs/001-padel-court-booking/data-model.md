@@ -28,7 +28,7 @@ users 1 ──── * reservations * ──── 1 courts
 
 **Validación (en el backend, antes de insertar)**:
 - `email`: obligatorio, ≤ 254 caracteres, formato `algo@dominio.tld` (regex simple). → 400 `INVALID_EMAIL`
-- `password`: obligatoria, ≥ 8 caracteres (≤ 128 para acotar el costo de hash). → 400 `PASSWORD_TOO_SHORT`
+- `password`: obligatoria, ≥ 8 caracteres → 400 `PASSWORD_TOO_SHORT`; ≤ 128 caracteres → 400 `PASSWORD_TOO_LONG` (FR-003)
 - Correo ya existente (sin distinguir mayúsculas). → 409 `EMAIL_TAKEN` "Este correo ya está registrado"
 
 ## 2. `sessions` — Sesión

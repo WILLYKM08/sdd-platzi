@@ -91,7 +91,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 - **Bloque contiguo ocupado**: si la hora contigua ya está reservada por otro usuario, el intento se rechaza con el mensaje de colisión estándar.
 - **Cancelación tardía**: si el usuario intenta cancelar justo cuando el bloque ya inició, se rechaza con "Esta reserva ya comenzó y no puede cancelarse".
 - **Sesión expirada**: si la sesión expira durante el flujo de reserva, la confirmación se rechaza y se pide iniciar sesión de nuevo, sin crear la reserva.
-- **Datos de registro inválidos**: correo con formato inválido o contraseña por debajo del mínimo se rechazan con mensajes específicos en español.
+- **Datos de registro inválidos**: correo con formato inválido (incluido uno de más de 254 caracteres), contraseña por debajo del mínimo o por encima del máximo se rechazan con mensajes específicos en español.
 - **Fechas fuera de la ventana**: las fechas pasadas y las posteriores a hoy + 13 días aparecen deshabilitadas en el calendario; un intento directo de reservar en ellas se rechaza con "Solo puedes reservar desde hoy y hasta 14 días en adelante".
 - **Ventana móvil**: la ventana avanza cada día a medianoche (hora de Medellín); el día 14 se habilita al cambiar de fecha.
 - **Errores inesperados**: ante cualquier fallo técnico, el usuario ve un mensaje amigable en español, nunca detalles técnicos.
@@ -104,7 +104,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 
 - **FR-001**: El sistema MUST permitir registrarse con un correo electrónico y una contraseña.
 - **FR-002**: El sistema MUST validar que el correo tenga formato válido y que no esté ya registrado (sin distinguir mayúsculas/minúsculas).
-- **FR-003**: El sistema MUST exigir una contraseña de al menos 8 caracteres.
+- **FR-003**: El sistema MUST exigir una contraseña de al menos 8 y como máximo 128 caracteres.
 - **FR-004**: El sistema MUST permitir iniciar sesión con correo y contraseña, y cerrar sesión. Una sesión MUST expirar 7 días después del inicio de sesión, o antes si el usuario cierra sesión; tras expirar, el usuario debe iniciar sesión de nuevo.
 - **FR-005**: Ante credenciales inválidas, el sistema MUST mostrar un mensaje genérico que no revele si el correo existe.
 - **FR-006**: El sistema MUST almacenar las contraseñas de forma que no puedan leerse en texto plano.
@@ -140,6 +140,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 **Errores**
 
 - **FR-026**: Todos los mensajes de error mostrados al usuario MUST estar en español, ser comprensibles y no contener detalles técnicos.
+- **FR-027**: El sistema MUST responder con estos códigos HTTP: 400 para datos inválidos y reglas de tiempo (bloque pasado, fuera de la ventana de 14 días); 401 sin sesión o con credenciales inválidas; 404 para canchas inexistentes o reservas inexistentes o ajenas; 409 para conflictos con el estado de las reservas: bloque ya reservado, regla de reserva activa (FR-019), máximo de 2 horas seguidas, cancelación de una reserva ya iniciada y correo ya registrado.
 
 ### Key Entities
 

@@ -22,7 +22,7 @@ toda la lógica temporal en funciones puras con reloj inyectable (UTC−5 fijo).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x en frontend y backend; Node.js 20 LTS+
+**Language/Version**: TypeScript 5.x en frontend y backend; Node.js ≥ 20.6 (LTS)
 
 **Primary Dependencies**:
 - Backend: `express` 4.x, `better-sqlite3` (SQL puro). Hash con `crypto.scrypt` nativo; cookies parseadas a mano (solo `sid`).
@@ -100,31 +100,38 @@ db/
 backend/
 ├── package.json
 ├── tsconfig.json
+├── tsconfig.build.json  # compila solo src/ → dist/
+├── vitest.config.ts
 ├── src/
 │   ├── index.ts         # arranque: abre DB y escucha en :3000
 │   ├── app.ts           # crea la app Express (rutas + error handler); exportada para tests
-│   ├── db.ts            # abre better-sqlite3, PRAGMAs, aplica schema.sql + seed.sql
+│   ├── db.ts            # openDb(path, { init }): PRAGMAs y, si init, aplica schema.sql + seed.sql
 │   ├── time.ts          # funciones puras: hoy Medellín, instante de bloque, ventana, etiquetas HH:mm
 │   ├── rules.ts         # funciones puras: regla de reserva activa (FR-019), validaciones de entrada
-│   ├── errors.ts        # catálogo code → {status, message} y helper sendError
+│   ├── errors.ts        # catálogo code → {status, message}, appError y sendError
 │   ├── auth.ts          # rutas /api/auth/* + middleware requireAuth + hash scrypt
 │   ├── courts.ts        # rutas GET /api/courts y /availability
-│   └── reservations.ts  # rutas POST/GET/DELETE /api/reservations (transacción IMMEDIATE)
+│   └── reservations.ts  # rutas POST/GET/DELETE /api/reservations + createReservationTx (transacción IMMEDIATE)
 └── tests/
+    ├── helpers.ts               # makeTestApp, createUserWithSession, insertReservation
     ├── time.test.ts
     ├── rules.test.ts
     ├── auth.test.ts
     ├── courts.test.ts
     ├── reservations.test.ts
-    └── concurrency.test.ts
+    ├── myReservations.test.ts
+    ├── concurrency.test.ts
+    └── concurrencyWorker.ts     # hilo de worker_threads para la prueba multiconexión (SC-003)
 
 frontend/
 ├── package.json
 ├── tsconfig.json
-├── vite.config.ts       # proxy /api → http://localhost:3000
+├── vite.config.ts       # proxy /api → http://localhost:3000 + config de Vitest (jsdom)
 ├── tailwind.config.js
+├── postcss.config.js
 ├── index.html
 ├── src/
+│   ├── index.css        # directivas de Tailwind
 │   ├── main.tsx
 │   ├── App.tsx          # rutas + RequireAuth
 │   ├── api.ts           # fetch con credentials, tipos de respuesta, traducción de errores
@@ -156,7 +163,7 @@ para poder probar la app con Supertest sobre una base temporal (ruta de DB por v
 
 ## Decisiones clave de diseño
 
-- **Anti doble reserva**: transacción `IMMEDIATE` + `UNIQUE`; orden de validaciones en [data-model.md](./data-model.md#reglas-de-validación-al-crear-una-reserva-en-orden-dentro-de-una-transacción-immediate).
+- **Anti doble reserva**: transacción `IMMEDIATE` + `UNIQUE`, encapsulada en `createReservationTx` (reutilizada por la ruta y por la prueba multiconexión); orden de validaciones en [data-model.md](./data-model.md#reglas-de-validación-al-crear-una-reserva-en-orden-dentro-de-una-transacción-immediate).
 - **Tiempo**: `now` se obtiene una vez por petición y se pasa a funciones puras; tests usan reloj fijo.
 - **Privacidad**: la grilla solo expone `status`/`selectable`; acceso a reserva ajena → 404.
 - **Sesión**: token aleatorio en cookie HttpOnly/SameSite=Lax, hash SHA-256 en BD, expiración absoluta de 7 días.

@@ -5,7 +5,7 @@ Detalles de endpoints en [contracts/api.md](./contracts/api.md); esquema en [dat
 
 ## Prerrequisitos
 
-- Node.js 20 LTS o superior (`node -v`) y npm 10+.
+- Node.js 20.6 o superior (`node -v`) y npm 10+. La prueba de concurrencia carga `concurrencyWorker.ts` en `worker_threads` mediante la API programática de `tsx` (`tsImport`).
 - En Windows, `better-sqlite3` usa binarios precompilados; si `npm install` intenta compilar,
   instalar "Desktop development with C++" de Visual Studio Build Tools.
 

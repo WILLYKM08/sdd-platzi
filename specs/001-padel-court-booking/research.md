@@ -55,6 +55,12 @@ la constitución y la spec dejan abiertas. No quedan ítems "NEEDS CLARIFICATION
   es exacta.
 - **Configuración**: `PRAGMA journal_mode = WAL`, `PRAGMA foreign_keys = ON`,
   `PRAGMA busy_timeout = 5000` (por si se abre más de una conexión, p. ej. en pruebas).
+- **Encapsulado**: la verificación + regla activa + inserción viven en una única función
+  `createReservationTx(db, userId, slot, now)` exportada desde `backend/src/reservations.ts`.
+  La ruta `POST /api/reservations` la llama, y la prueba de concurrencia la ejecuta desde
+  varios `worker_threads` con conexiones independientes (`openDb(path, { init: false })`)
+  para verificar el bloqueo real entre conexiones (SC-003), no solo peticiones serializadas
+  en un único proceso.
 - **Alternatives considered**: bloqueos en memoria (mutex) en Node — no protege frente a
   varios procesos; *optimistic locking* con columna de versión — innecesario con `UNIQUE`.
 
