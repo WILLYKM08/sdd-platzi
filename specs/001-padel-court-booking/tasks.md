@@ -158,7 +158,7 @@ description: "Lista de tareas para implementar el Sistema de Reservas de Canchas
 - [X] T051 [P] Añadir a `backend/tests/courts.test.ts` una prueba de rendimiento básica (SC-005): con 5 canchas × 14 días × 20 reservas insertadas, `GET /availability` responde en < 200 ms
 - [X] T052 Revisar todos los mensajes visibles (`backend/src/errors.ts`, `frontend/src/**/*.tsx`) y comprobar que están en español, sin detalles técnicos y que coinciden literalmente con spec.md (SC-008, FR-026); confirmar que ninguna respuesta de la API incluye `password_hash`, `token_hash`, nombres de tablas ni *stack traces*
 - [X] T053 Ejecutar `npm run typecheck`, `npm test` y `npm run build` en `backend/` y `frontend/`; corregir cualquier fallo
-- [ ] T054 Ejecutar la validación manual completa y los `curl` de [quickstart.md](./quickstart.md) y marcar cada paso; si algún resultado contradice spec.md, detenerse y reportar (Principio VI)
+- [X] T054 Ejecutar la validación manual completa y los `curl` de [quickstart.md](./quickstart.md) y marcar cada paso; si algún resultado contradice spec.md, detenerse y reportar (Principio VI)
 
 ---
 
