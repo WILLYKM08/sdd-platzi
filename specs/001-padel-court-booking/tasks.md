@@ -188,7 +188,9 @@ description: "Lista de tareas para implementar el Sistema de Reservas de Canchas
 - [X] T065 Al iniciar sesión o registrarse, borrar la sesión anterior del navegador y las sesiones vencidas (`startSession` en `backend/src/auth.ts`). Pruebas en `backend/tests/security.test.ts` (FR-004)
 - [X] T066 Repetir la validación de `quickstart.md` en el navegador con la cookie `Secure` sobre `http://localhost` y verificar las cabeceras del servidor de Vite (T054)
 
-**Checkpoint**: 69 pruebas en backend y 16 en frontend en verde; S5 (actualizar `react-router-dom` a 7.18+) queda registrado para una actualización futura: no es explotable en esta app (sin SSR ni destinos de navegación controlados por el usuario).
+- [X] T067 Actualizar `react-router-dom` de 6.30.6 a 7.18.5 en `frontend/package.json` para resolver los avisos GHSA-wrjc-x8rr-h8h6 y GHSA-337j-9hxr-rhxg (hallazgo S5); `npm audit` sin vulnerabilidades; typecheck, 16 pruebas, build y los 17 pasos de quickstart.md en el navegador sin cambios en el código
+
+**Checkpoint**: 69 pruebas en backend y 16 en frontend en verde; `npm audit` sin vulnerabilidades en backend ni frontend; quickstart.md validado en el navegador (17/17).
 
 ---
 

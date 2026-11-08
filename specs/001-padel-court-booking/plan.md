@@ -26,7 +26,7 @@ toda la lógica temporal en funciones puras con reloj inyectable (UTC−5 fijo).
 
 **Primary Dependencies**:
 - Backend: `express` 4.x, `better-sqlite3` (SQL puro). Hash con `crypto.scrypt` nativo; cookies parseadas a mano (solo `sid`).
-- Frontend: `react` 18, `react-dom`, `react-router-dom` 6, `tailwindcss`; build con `vite` + `@vitejs/plugin-react`.
+- Frontend: `react` 18, `react-dom`, `react-router-dom` 7 (7.18.5; actualizado desde 6 en T067), `tailwindcss`; build con `vite` + `@vitejs/plugin-react`.
 - Dev: `tsx` (ejecutar TS en dev), `vitest`, `supertest`, `@testing-library/react`, `jsdom`, `@types/*`.
 
 **Storage**: SQLite en `/db/padel.db` (WAL, `foreign_keys=ON`, `busy_timeout=5000`); esquema `/db/schema.sql`, semilla `/db/seed.sql`
