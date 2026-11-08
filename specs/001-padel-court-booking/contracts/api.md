@@ -126,7 +126,7 @@ Request
 | 400 `OUTSIDE_BOOKING_WINDOW` | Fecha fuera de hoy..hoy+13 |
 | 409 `SLOT_TAKEN` | Bloque ya reservado (incluida carrera concurrente) |
 | 409 `ACTIVE_RESERVATION_EXISTS` | Tiene 1 activa y el bloque no es contiguo en la misma cancha |
-| 409 `MAX_CONSECUTIVE_REACHED` | Ya tiene 2 reservas activas |
+| 409 `MAX_CONSECUTIVE_REACHED` | Ya tiene 2 reservas activas, o el bloque formaría más de 2 horas seguidas en la misma cancha (contando reservas ya finalizadas) |
 
 ### `GET /api/reservations/me` 🔒
 Panel "Mis Reservas" (FR-021, FR-022). Solo reservas del usuario de la sesión (FR-008).

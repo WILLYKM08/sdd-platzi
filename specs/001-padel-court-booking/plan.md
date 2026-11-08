@@ -1,6 +1,6 @@
 # Implementation Plan: Sistema de Reservas de Canchas de Pádel
 
-**Branch**: `plan` | **Date**: 2026-11-07 | **Spec**: [spec.md](./spec.md)
+**Branch**: `plan` (planificación); implementación en `implementacion` y revisiones en `revision` | **Date**: 2026-11-07 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-padel-court-booking/spec.md`
 
@@ -37,7 +37,7 @@ toda la lógica temporal en funciones puras con reloj inyectable (UTC−5 fijo).
 
 **Project Type**: Aplicación web (SPA frontend + API REST backend)
 
-**Performance Goals**: grilla de disponibilidad < 2 s en el p95 (SC-005; objetivo interno de API < 100 ms con índice único); reserva completa en ≤ 5 interacciones tras iniciar sesión (SC-002)
+**Performance Goals**: grilla de disponibilidad < 2 s en el p95 (SC-005; objetivo interno de API < 200 ms con la ventana llena de reservas, verificado en T051); reserva completa en ≤ 5 interacciones tras iniciar sesión (SC-002)
 
 **Constraints**: 0 dobles reservas ante ≥ 10 confirmaciones simultáneas (SC-003); todo mensaje al usuario en español y sin detalles técnicos (SC-008); horas en formato 24 h; zona horaria America/Bogota (UTC−5 fijo)
 
@@ -117,6 +117,7 @@ backend/
     ├── time.test.ts
     ├── rules.test.ts
     ├── auth.test.ts
+    ├── authCost.test.ts         # costo de hash en registro/login (T058)
     ├── courts.test.ts
     ├── reservations.test.ts
     ├── myReservations.test.ts
@@ -151,6 +152,7 @@ frontend/
     ├── SlotGrid.test.tsx
     ├── DatePicker.test.tsx
     ├── ConfirmDialog.test.tsx
+    ├── CourtAvailabilityPage.test.tsx   # respuestas obsoletas y cargas fallidas (T060)
     └── api.test.ts
 ```
 

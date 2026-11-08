@@ -90,5 +90,6 @@ Cubiertos en `backend/tests/` fijando `now`:
 - 14:20 → bloque 14:00 no reservable ni cancelable (`RESERVATION_STARTED`).
 - 23:00 de un día + 00:00 del siguiente en la misma cancha → contiguos (permitido).
 - Reserva activa que termina → pasa a historial y el usuario puede volver a reservar.
+- Encadenar horas: con 10:00 y 11:00 reservadas en una cancha, a las 11:05 (la de 10:00 ya finalizada) reservar 12:00 en esa cancha → 409 `MAX_CONSECUTIVE_REACHED` "Ya alcanzaste el máximo de 2 horas seguidas". Si solo existía la de 10:00, 12:00 y 13:00 sí se permiten (`backend/tests/reservations.test.ts`, T056).
 - Sesión con `expires_at` vencido → 401 y no se crea la reserva.
 - Día hoy+13 permitido; hoy+14 rechazado; a medianoche de Medellín la ventana avanza.

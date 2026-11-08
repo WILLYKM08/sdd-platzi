@@ -1,6 +1,6 @@
 # Feature Specification: Sistema de Reservas de Canchas de Pádel
 
-**Feature Branch**: `spec`
+**Feature Branch**: `spec` (especificación); implementación en `implementacion` y revisiones en `revision`
 
 **Created**: 2026-11-07
 
@@ -95,6 +95,7 @@ Un usuario con sesión abre su panel "Mis Reservas", donde ve su reserva futura 
 - **Datos de registro inválidos**: correo con formato inválido (incluido uno de más de 254 caracteres), contraseña por debajo del mínimo o por encima del máximo se rechazan con mensajes específicos en español.
 - **Fechas fuera de la ventana**: las fechas pasadas y las posteriores a hoy + 13 días aparecen deshabilitadas en el calendario; un intento directo de reservar en ellas se rechaza con "Solo puedes reservar desde hoy y hasta 14 días en adelante".
 - **Ventana móvil**: la ventana avanza cada día a medianoche (hora de Medellín); el día 14 se habilita al cambiar de fecha.
+- **Recargar la página**: al recargar o volver a abrir la disponibilidad de una cancha, la fecha seleccionada vuelve a ser hoy; la fecha elegida no se conserva.
 - **Errores inesperados**: ante cualquier fallo técnico, el usuario ve un mensaje amigable en español, nunca detalles técnicos.
 
 ## Requirements *(mandatory)*
