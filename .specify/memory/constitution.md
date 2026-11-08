@@ -1,6 +1,18 @@
 <!--
 Sync Impact Report
 ==================
+Version change: 1.0.0 → 1.0.1 (PATCH, 2026-11-07)
+Principios modificados:
+  - I. Catálogo Cerrado de Canchas — aclaración: `24:00` se admite únicamente como
+    hora de fin del último bloque del día (las horas de inicio siguen en 00:00–23:59).
+Secciones añadidas/eliminadas: ninguna
+Plantillas revisadas:
+  - ✅ .specify/templates/*.md — sin cambios requeridos (aclaración de redacción).
+  - ✅ specs/001-padel-court-booking/* — ya usan "23:00–24:00"; ahora conformes.
+TODOs diferidos: ninguno. Resuelto el TODO de 1.0.0 sobre duración de bloques y
+horario de operación: spec.md los fija (bloques de 1 h, 00:00–24:00).
+
+Historial — 1.0.0 (ratificación):
 Version change: (template sin ratificar) → 1.0.0
 Principios definidos (antes eran placeholders):
   - [PRINCIPLE_1_NAME] → I. Catálogo Cerrado de Canchas
@@ -21,9 +33,9 @@ Plantillas revisadas:
   - ✅ .specify/templates/tasks-template.md — sin nuevos tipos de tarea requeridos.
   - ✅ .specify/templates/commands/*.md — no existe el directorio; nada que revisar.
   - ✅ CLAUDE.md — solo remite al plan actual; sin referencias a principios.
-TODOs diferidos:
-  - La duración de los bloques de reserva (p. ej. 60 o 90 min) y el horario de
-    operación no están definidos; deben fijarse en spec.md (ver Principio I).
+TODOs diferidos (1.0.0, resuelto en 1.0.1):
+  - La duración de los bloques de reserva y el horario de operación debían
+    fijarse en spec.md (ver Principio I).
 -->
 
 # Sistema de Reservas de Pádel Constitution
@@ -37,8 +49,10 @@ TODOs diferidos:
 - MUST NOT existir flujo, endpoint ni UI para crear, editar o eliminar canchas.
   El catálogo se siembra (seed) en la base de datos y es inmutable.
 - Todas las horas de reserva MUST expresarse y mostrarse en formato de 24 horas
-  (`HH:mm`, 00:00–23:59). La duración de los bloques y el horario de operación
-  se definen en `spec.md`; el código MUST NOT asumir valores no documentados.
+  (`HH:mm`). Las horas de inicio van de 00:00 a 23:59; `24:00` se admite
+  únicamente como hora de fin del último bloque del día. La duración de los
+  bloques y el horario de operación se definen en `spec.md`; el código MUST NOT
+  asumir valores no documentados.
 
 **Razón**: un dominio cerrado elimina complejidad administrativa innecesaria y
 hace las reglas verificables.
@@ -141,4 +155,4 @@ códigos predecibles para traducirlos.
 - Para guía de ejecución en tiempo de desarrollo, consultar `CLAUDE.md` y el
   `plan.md` vigente.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-07 | **Last Amended**: 2026-11-07
+**Version**: 1.0.1 | **Ratified**: 2026-11-07 | **Last Amended**: 2026-11-07

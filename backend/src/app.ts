@@ -1,0 +1,48 @@
+import express, { type NextFunction, type Request, type Response } from 'express';
+import { authRouter, requireAuth } from './auth.js';
+import { courtsRouter } from './courts.js';
+import { reservationsRouter } from './reservations.js';
+import type { Db } from './db.js';
+import { isAppError, sendError } from './errors.js';
+
+export type AppContext = { db: Db; now: () => Date };
+
+export function createApp({ db, now }: AppContext) {
+  const app = express();
+  app.disable('x-powered-by');
+  // Cabeceras de seguridad para todas las respuestas de la API (research.md R9).
+  app.use((_req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+      'Referrer-Policy': 'no-referrer',
+    });
+    next();
+  });
+  app.use(express.json());
+
+  // Un único middleware de sesión compartido por todos los routers (Principio III).
+  const auth = requireAuth(db, now);
+  app.use('/api/auth', authRouter(db, now, auth));
+  app.use('/api/courts', courtsRouter(db, now, auth));
+  app.use('/api/reservations', reservationsRouter(db, now, auth));
+
+  app.use('/api', (_req, res) => sendError(res, 'NOT_FOUND'));
+
+  // Error handler final: nunca filtra detalles internos (Principio V).
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    // Errores del parser JSON (mal formado, demasiado grande, etc.): petición inválida.
+    const parserError = err as { type?: unknown; status?: unknown };
+    if (typeof parserError?.type === 'string' && typeof parserError.status === 'number' && parserError.status < 500) {
+      return sendError(res, 'INVALID_REQUEST');
+    }
+    if (isAppError(err)) {
+      return sendError(res, err.code);
+    }
+    console.error(err);
+    sendError(res, 'INTERNAL_ERROR');
+  });
+
+  return app;
+}
