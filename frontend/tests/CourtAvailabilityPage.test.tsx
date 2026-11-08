@@ -91,3 +91,27 @@ describe('CourtAvailabilityPage', () => {
     expect(screen.getByLabelText('Fecha')).toBeTruthy();
   });
 });
+
+describe('CourtAvailabilityPage: primera carga fallida', () => {
+  it('muestra el calendario aunque la primera carga falle y permite reintentar (#4)', async () => {
+    getAvailability.mockRejectedValueOnce({ status: 500, code: 'INTERNAL_ERROR', message: 'Ocurrió un problema inesperado.' });
+    render(
+      <MemoryRouter initialEntries={['/canchas/3']}>
+        <Routes>
+          <Route path="/canchas/:courtId" element={<CourtAvailabilityPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    const input = screen.getByLabelText('Fecha') as HTMLInputElement;
+    expect(input.min).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(input.max).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    getAvailability.mockResolvedValueOnce(grid('2026-11-10', [9]));
+    await act(async () => {
+      fireEvent.change(input, { target: { value: '2026-11-10' } });
+    });
+    expect(slotButtons()).toHaveLength(24);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});

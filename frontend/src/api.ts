@@ -104,3 +104,11 @@ export function getMyReservations() {
 export function cancelReservation(id: number) {
   return apiFetch<void>(`/api/reservations/${id}`, { method: 'DELETE' });
 }
+
+/** Ventana de reserva estimada en el navegador (hoy..hoy+13, Medellín) hasta recibir la del servidor. */
+export function clientBookingWindow(): { from: string; to: string } {
+  const from = todayInMedellin();
+  const [y, m, d] = from.split('-').map(Number);
+  const to = new Date(Date.UTC(y, m - 1, d + 13)).toISOString().slice(0, 10);
+  return { from, to };
+}

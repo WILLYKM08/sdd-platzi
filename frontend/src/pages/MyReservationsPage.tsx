@@ -51,15 +51,21 @@ export function MyReservationsPage() {
     if (!toCancel) return;
     setBusy(true);
     setError(null);
+    let failure: unknown = null;
     try {
       await cancelReservation(toCancel.id);
     } catch (err) {
-      if (isApiError(err) && err.status === 401) return; // `auth:expired` ya redirige al login (#7)
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-      setToCancel(null);
+      failure = err;
     }
+
+    // Sesión expirada: `auth:expired` ya redirige al login; no se toca más el estado.
+    if (isApiError(failure) && failure.status === 401) return;
+
+    setBusy(false);
+    setToCancel(null);
+    if (failure) setError(errorMessage(failure));
+    // Se recarga en ambos casos: tras cancelar, o para reflejar el estado real si falló
+    // (p. ej. la reserva ya comenzó).
     await load();
   }
 

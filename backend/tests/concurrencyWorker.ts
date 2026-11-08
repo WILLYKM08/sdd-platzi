@@ -2,7 +2,7 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { openDb } from '../src/db.js';
 import { isAppError } from '../src/errors.js';
-import { createReservationTx } from '../src/reservations.js';
+import { makeCreateReservation } from '../src/reservations.js';
 
 type Data = {
   dbPath: string;
@@ -14,13 +14,14 @@ type Data = {
 
 const { dbPath, userId, slot, nowIso, barrier } = workerData as Data;
 const db = openDb(dbPath, { init: false });
+const createReservation = makeCreateReservation(db);
 const gate = new Int32Array(barrier);
 
 // Espera a que el hilo principal libere la barrera para arrancar todos a la vez.
 Atomics.wait(gate, 0, 0);
 
 try {
-  createReservationTx(db, userId, slot, new Date(nowIso));
+  createReservation(userId, slot, new Date(nowIso));
   parentPort!.postMessage({ ok: true });
 } catch (err) {
   parentPort!.postMessage(

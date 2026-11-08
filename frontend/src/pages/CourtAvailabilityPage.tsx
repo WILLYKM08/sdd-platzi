@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
+  clientBookingWindow,
   createReservation,
   errorMessage,
   formatDate,
@@ -27,8 +28,10 @@ export function CourtAvailabilityPage() {
   const [date, setDate] = useState(todayInMedellin);
   // `data` solo contiene la grilla de la fecha actual; nunca la de otra fecha.
   const [data, setData] = useState<Availability | null>(null);
-  // La ventana del calendario se conserva aunque falle una carga, para poder cambiar de fecha.
-  const [bookingWindow, setBookingWindow] = useState<Availability['bookingWindow'] | null>(null);
+  // La ventana del calendario existe desde el inicio (calculada en el navegador) y se
+  // reemplaza por la del servidor en cada carga: aunque una carga falle, incluida la
+  // primera, el calendario sigue visible para cambiar de fecha y reintentar.
+  const [bookingWindow, setBookingWindow] = useState(clientBookingWindow);
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Reservation | null>(null);
@@ -97,7 +100,7 @@ export function CourtAvailabilityPage() {
       </Link>
       <h1 className="text-xl font-semibold">{courtName}</h1>
 
-      {bookingWindow && <DatePicker value={date} min={bookingWindow.from} max={bookingWindow.to} onChange={handleDateChange} />}
+      <DatePicker value={date} min={bookingWindow.from} max={bookingWindow.to} onChange={handleDateChange} />
 
       {confirmed && (
         <div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">

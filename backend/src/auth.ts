@@ -1,4 +1,4 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from 'node:crypto';
+import { createHash, randomBytes, scrypt, scryptSync, timingSafeEqual, type ScryptOptions } from 'node:crypto';
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import type { Db } from './db.js';
 import { sendError } from './errors.js';
@@ -24,6 +24,18 @@ export async function hashPassword(password: string): Promise<string> {
   const hash = await scryptAsync(password, salt, KEY_LENGTH);
   return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
 }
+
+/**
+ * Hash ficticio para igualar tiempos en el login con un correo inexistente (FR-005).
+ * Se calcula una sola vez por proceso, al cargar el módulo y de forma síncrona: está
+ * listo antes de la primera petición, y si scrypt fallara el servidor no arrancaría
+ * (en vez de responder 500 solo a los correos inexistentes).
+ */
+const DUMMY_HASH = (() => {
+  const salt = randomBytes(16);
+  const hash = scryptSync(randomBytes(16).toString('hex'), salt, KEY_LENGTH, SCRYPT_PARAMS);
+  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
+})();
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [scheme, saltHex, hashHex] = stored.split('$');
@@ -127,11 +139,6 @@ export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
   const findUserById = db.prepare<[number], { id: number; email: string }>('SELECT id, email FROM users WHERE id = ?');
   const deleteSession = db.prepare('DELETE FROM sessions WHERE token_hash = ?');
 
-  // Hash ficticio calculado al arrancar: un login con correo inexistente cuesta lo
-  // mismo que uno con contraseña errónea, también la primera vez (FR-005).
-  const dummyHash = hashPassword(randomBytes(16).toString('hex'));
-  dummyHash.catch(() => undefined);
-
   router.post(
     '/register',
     asyncHandler(async (req, res) => {
@@ -139,10 +146,13 @@ export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
       if (!email) return sendError(res, 'INVALID_EMAIL');
       const passwordError = validatePassword(req.body?.password);
       if (passwordError) return sendError(res, passwordError);
+      // Se comprueba antes de calcular el hash para no gastar CPU en registros duplicados.
+      if (findUserByEmail.get(email)) return sendError(res, 'EMAIL_TAKEN');
 
       const passwordHash = await hashPassword(req.body.password);
       let userId: number;
       try {
+        // UNIQUE sigue siendo la red de seguridad ante dos registros simultáneos.
         userId = Number(insertUser.run(email, passwordHash).lastInsertRowid);
       } catch (err) {
         if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') return sendError(res, 'EMAIL_TAKEN');
@@ -161,7 +171,7 @@ export function authRouter(db: Db, now: () => Date, auth: RequestHandler) {
         return sendError(res, 'INVALID_REQUEST');
       }
       const user = findUserByEmail.get(email.trim().toLowerCase());
-      const valid = await verifyPassword(password, user ? user.password_hash : await dummyHash);
+      const valid = await verifyPassword(password, user ? user.password_hash : DUMMY_HASH);
       if (!user || !valid) return sendError(res, 'INVALID_CREDENTIALS');
       setSessionCookie(res, createSession(db, user.id, now()));
       res.status(200).json({ user: { id: user.id, email: user.email } });

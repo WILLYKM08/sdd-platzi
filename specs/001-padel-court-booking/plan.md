@@ -111,7 +111,7 @@ backend/
 │   ├── errors.ts        # catálogo code → {status, message}, appError y sendError
 │   ├── auth.ts          # rutas /api/auth/* + middleware requireAuth + hash scrypt
 │   ├── courts.ts        # rutas GET /api/courts y /availability
-│   └── reservations.ts  # rutas POST/GET/DELETE /api/reservations + createReservationTx (transacción IMMEDIATE)
+│   └── reservations.ts  # rutas POST/GET/DELETE /api/reservations + makeCreateReservation (transacción IMMEDIATE)
 └── tests/
     ├── helpers.ts               # makeTestApp, createUserWithSession, insertReservation
     ├── time.test.ts
@@ -163,7 +163,7 @@ para poder probar la app con Supertest sobre una base temporal (ruta de DB por v
 
 ## Decisiones clave de diseño
 
-- **Anti doble reserva**: transacción `IMMEDIATE` + `UNIQUE`, encapsulada en `createReservationTx` (reutilizada por la ruta y por la prueba multiconexión); orden de validaciones en [data-model.md](./data-model.md#reglas-de-validación-al-crear-una-reserva-en-orden-dentro-de-una-transacción-immediate).
+- **Anti doble reserva**: transacción `IMMEDIATE` + `UNIQUE`, encapsulada en `makeCreateReservation` (reutilizada por la ruta y por la prueba multiconexión); orden de validaciones en [data-model.md](./data-model.md#reglas-de-validación-al-crear-una-reserva-en-orden-dentro-de-una-transacción-immediate).
 - **Tiempo**: `now` se obtiene una vez por petición y se pasa a funciones puras; tests usan reloj fijo.
 - **Privacidad**: la grilla solo expone `status`/`selectable`; acceso a reserva ajena → 404.
 - **Sesión**: token aleatorio en cookie HttpOnly/SameSite=Lax, hash SHA-256 en BD, expiración absoluta de 7 días.
